@@ -23,11 +23,26 @@ hbar = constants.hbar * unt.J * unt.s
 w_c = e * B / m
 dos = m / (constants.pi * hbar ** 2)
 Ef = n / dos
-Ef = Ef.cast_unit(unt.J)
+v_f = (2 * Ef / m) ** 0.5
+
+#@TODO calculate later
+tau_in = 0.1 * tau_tr.number() * tau_tr.unit()
+Q_dc = 2 * (tau_tr / tau_in) * (e * E_dc * v_f / w_c) ** 2 * (constants.pi / (hbar * w_c)) ** 2
+Q_dc = Q_dc.cast_unit(unt.unitless)
 
 dingle = - constants.pi / (w_c * tau_q)
 dingle = dingle.cast_unit(unt.unitless)
 dingle = np.exp(dingle.number())
+
+
+def f_osc_arg_get_E(arg):
+    return arg * hbar * w_c + Ef
+
+
+f_osc_arg = np.linspace(-5, 5, 1000)
+dE = f_osc_arg_get_E(f_osc_arg[1]) - f_osc_arg_get_E(f_osc_arg[0])
+dE = dE.cast_unit(meV)
+
 
 def fermi_dirac(E, Ef, T):
     exp_arg = (E - Ef)/(k*T)
@@ -36,19 +51,36 @@ def fermi_dirac(E, Ef, T):
     return 1.0 / (np.exp(exp_arg) + 1)
 
 
-
-
-
-def fermi_dirac_vector(E):
+def fermi_dirac_wrapper(E):
     return fermi_dirac(E, Ef, T)
 
-Ef = Ef.cast_unit(unt.J)
-x = np.linspace(0, 2 * Ef.number(), 1000) * unt.J
-y = map(fermi_dirac_vector, x)
-# y_der = np.diff(y)
-# y_der = np.append(y_der, [y_der[-1]])
-x = map(lambda x: x.number(), x)
-plt.plot(x, y)
+
+def fermi_dirac_der_wrapper(E):
+    fermi_dirac_der = (fermi_dirac(E + dE, Ef, T) - fermi_dirac(E, Ef, T)) / dE
+    return fermi_dirac_der.number()
+
+
+def f_osc_sin_arg(E):
+    arg = 2 * constants.pi * E / (hbar * w_c) * (4 * Q_dc / (1 + Q_dc))
+    return arg.cast_unit(unt.unitless).number()
+
+
+f_osc_arg = np.linspace(-5, 5, 1000)
+
+# x = np.linspace(0, 2 * Ef.number(), 1000) * Ef.unit()
+f_0 = map(lambda arg: fermi_dirac_wrapper(f_osc_arg_get_E(arg)), f_osc_arg)
+f_0_der = map(lambda arg: fermi_dirac_der_wrapper(f_osc_arg_get_E(arg)), f_osc_arg)
+f_osc_sin = map(lambda arg: np.sin(f_osc_sin_arg(f_osc_arg_get_E(arg))), f_osc_arg)
+f_osc_prefix = dingle * (hbar * w_c / (2 * constants.pi * dE.unit()))
+f_osc_prefix = f_osc_prefix.cast_unit(unt.unitless)
+f_osc = f_osc_prefix * np.multiply(f_0_der, f_osc_sin)
+f = f_osc + f_0
+
+
+# x = map(lambda x: x.number(), x)
+plt.plot(f_osc_arg, f)
+plt.plot(f_osc_arg, f_0)
 plt.show()
+
 
 
