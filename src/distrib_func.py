@@ -105,7 +105,7 @@ f_0 = map(lambda arg: fermi_dirac_wrapper(f_osc_arg_get_E(arg)), f_osc_arg)
 f_0_der = map(lambda arg: fermi_dirac_der_wrapper(f_osc_arg_get_E(arg)), f_osc_arg)
 f_osc_sin = map(lambda arg: np.sin(f_osc_sin_arg(f_osc_arg_get_E(arg))), f_osc_arg)
 f_osc_prefix = dingle * (hbar * w_c / (2 * constants.pi * dE.unit()))
-f_osc_prefix = f_osc_prefix.cast_unit(unt.unitless)
+f_osc_prefix = f_osc_prefix.cast_unit(unt.unitless).number()
 f_osc = f_osc_prefix * np.multiply(f_0_der, f_osc_sin)
 f = f_osc + f_0
 
