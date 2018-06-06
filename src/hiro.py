@@ -70,8 +70,20 @@ def R_sdh_per_R_0(B, tau_q, V_0, A_SdH=0.85):
     return envelop * np.cos(cos_arg)
 
 E_dc_prefix = (I_dc / W) / (n * e)
-def r_hiro_per_R_0(B, tau_q, A_hiro=0.85):
+def r_hiro_per_R_0(B, tau_q, A_hiro=1):
     w_c = w_c_prefix * B
+    dingle_arg = -2 * constants.pi / (w_c * tau_q)
+    dingle_arg = dingle_arg.cast_unit(unt.unitless).number()
+    cos_arg = 4 * constants.pi * R_c(B) * e * E_dc_prefix * B / (hbar * w_c)
+    cos_arg = cos_arg.cast_unit(unt.unitless).number()
+    return A_hiro * np.exp(dingle_arg) * np.cos(cos_arg)
+
+def r_hiro_per_R_0_CO(B, tau_q_0, A_hiro=1):
+    w_c = w_c_prefix * B
+    V_B = V_0 * V_B_per_V_0_wrapper(B)
+    bessel_arg = 2 * constants.pi * V_B / (hbar * w_c)
+    bessel_arg = bessel_arg.cast_unit(unt.unitless).number()
+    tau_q = tau_q_0 * spc.j0(bessel_arg)
     dingle_arg = -2 * constants.pi / (w_c * tau_q)
     dingle_arg = dingle_arg.cast_unit(unt.unitless).number()
     cos_arg = 4 * constants.pi * R_c(B) * e * E_dc_prefix * B / (hbar * w_c)
@@ -127,15 +139,15 @@ def collect_dots(subplot, filename):
 # Subtract monotonic part.
 maximums_data_file = 'data/hiro/maximums.csv'
 minimums_data_file = 'data/hiro/minimums.csv'
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_data[0], interp_data[1])
-# collect_dots(subplot, maximums_data_file)
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_data[0], interp_data[1])
+collect_dots(subplot, maximums_data_file)
 
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_data[0], interp_data[1])
-# collect_dots(subplot, minimums_data_file)
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_data[0], interp_data[1])
+collect_dots(subplot, minimums_data_file)
 
 data = read_from_csv(maximums_data_file)
 p = np.polyfit(data[0], data[1], 12)
@@ -145,16 +157,16 @@ p = np.polyfit(data[0], data[1], 12)
 min_data_interp = np.polyval(p, interp_arg)
 average_data_interp = (max_data_interp + min_data_interp) / 2
 interp_val_average = interp_val - average_data_interp
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val)
-# subplot.plot(interp_arg, max_data_interp)
-# subplot.plot(interp_arg, min_data_interp)
-# plt.show()
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val_average)
-# plt.show()
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val)
+subplot.plot(interp_arg, max_data_interp)
+subplot.plot(interp_arg, min_data_interp)
+plt.show()
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_average)
+plt.show()
 
 # Extract CO
 freq = np.fft.rfft(interp_val_average)
@@ -165,10 +177,10 @@ freq[50:] = 0
 # subplot.plot(freq)
 # plt.show()
 interp_val_co = np.fft.irfft(freq, len(interp_arg))
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val_co)
-# plt.show()
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_co)
+plt.show()
 
 # Extract SdH
 # fig = plt.figure()
@@ -183,47 +195,47 @@ freq[95:] = 0
 # subplot.plot(freq)
 # plt.show()
 interp_val_sdh = np.fft.irfft(freq, len(interp_val_average[:1150]))
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg[:1150], interp_val_sdh)
-# plt.show()
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg[:1150], interp_val_sdh)
+plt.show()
 
 # Calc SdH envelop
-# interp_val_sdg_calc_envelop = map(lambda arg: R_sdh_per_R_0_envelop(arg ** -1 * unt.T, 2.3 * unt.ps, 0 * unt.eV), interp_arg[:1150])
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg[:1150], interp_val_sdg_calc_envelop)
-# subplot.plot(interp_arg[:1150], interp_val_sdh)
-# plt.show()
+interp_val_sdg_calc_envelop = map(lambda arg: R_sdh_per_R_0_envelop(arg ** -1 * unt.T, 2.3 * unt.ps, 0 * unt.eV), interp_arg[:1150])
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg[:1150], interp_val_sdg_calc_envelop)
+subplot.plot(interp_arg[:1150], interp_val_sdh)
+plt.show()
 
 # Calc SdH
-# interp_val_sdg_calc = map(lambda arg: R_sdh_per_R_0(arg ** -1 * unt.T, 2.3 * unt.ps, 0.7 * meV), interp_arg[:1150])
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg[:1150], interp_val_sdg_calc)
-# subplot.plot(interp_arg[:1150], interp_val_sdg_calc_envelop)
-# plt.show()
+interp_val_sdg_calc = map(lambda arg: R_sdh_per_R_0(arg ** -1 * unt.T, 2.3 * unt.ps, 0.7 * meV), interp_arg[:1150])
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg[:1150], interp_val_sdg_calc)
+subplot.plot(interp_arg[:1150], interp_val_sdg_calc_envelop)
+plt.show()
 
 # DC PART
 data = read_from_csv('data/hiro/dc_data.csv')
 interp_val_dc = np.interp(interp_arg, data[0], data[1])
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val_dc)
-# plt.show()
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_dc)
+plt.show()
 
 # Subtract monotonic part.
 maximums_data_file = 'data/hiro/maximums_dc.csv'
 minimums_data_file = 'data/hiro/minimums_dc.csv'
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val_dc)
-# collect_dots(subplot, maximums_data_file)
-#
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val_dc)
-# collect_dots(subplot, minimums_data_file)
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_dc)
+collect_dots(subplot, maximums_data_file)
+
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_dc)
+collect_dots(subplot, minimums_data_file)
 data = read_from_csv(maximums_data_file)
 p = np.polyfit(data[0], data[1], 15)
 max_data_interp = np.polyval(p, interp_arg)
@@ -232,35 +244,52 @@ p = np.polyfit(data[0], data[1], 15)
 min_data_interp = np.polyval(p, interp_arg)
 average_data_interp = (max_data_interp + min_data_interp) / 2
 interp_val_average_dc = interp_val_dc - average_data_interp
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val_dc)
-# subplot.plot(interp_arg, max_data_interp)
-# subplot.plot(interp_arg, min_data_interp)
-# plt.show()
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val_average_dc)
-# plt.show()
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_dc)
+subplot.plot(interp_arg, max_data_interp)
+subplot.plot(interp_arg, min_data_interp)
+plt.show()
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_average_dc)
+plt.show()
 
 # Extract CO
-# freq = np.fft.rfft(interp_val_average_dc)
-# freq[:10] = 0
-# freq[30:] = 0
+freq = np.fft.rfft(interp_val_average_dc)
+freq[:10] = 0
+freq[30:] = 0
 # fig = plt.figure()
 # subplot = fig.add_subplot(111)
 # subplot.plot(freq)
 # plt.show()
-# interp_val_co_dc = np.fft.irfft(freq, len(interp_arg))
-# fig = plt.figure()
-# subplot = fig.add_subplot(111)
-# subplot.plot(interp_arg, interp_val_co)
-# subplot.plot(interp_arg, interp_val_co_dc)
-# plt.show()
-
-# Calc HIRO
-interp_val_dc_calc = map(lambda arg: r_hiro_per_R_0(arg ** -1 * unt.T, 2.3 * unt.ps), interp_arg)
+interp_val_co_dc = np.fft.irfft(freq, len(interp_arg))
 fig = plt.figure()
 subplot = fig.add_subplot(111)
-subplot.plot(interp_arg, interp_val_dc_calc)
+subplot.plot(interp_arg, interp_val_co)
+subplot.plot(interp_arg, interp_val_co_dc)
+plt.show()
+
+# Calc HIRO
+interp_val_hiro_calc = map(lambda arg: r_hiro_per_R_0(arg ** -1 * unt.T, 4 * unt.ps), interp_arg)
+interp_val_hiro_co_calc = map(lambda arg: r_hiro_per_R_0_CO(arg ** -1 * unt.T, 4.6 * unt.ps), interp_arg)
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_hiro_calc)
+subplot.plot(interp_arg, interp_val_hiro_co_calc)
+plt.show()
+
+interp_val_co_dc_calc = np.array(interp_val_hiro_co_calc) - np.array(interp_val_hiro_calc)
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_co_dc)
+subplot.plot(interp_arg, interp_val_co_dc_calc)
+plt.show()
+
+interp_val_co_dc_calc = np.roll(interp_val_co_dc_calc, 300)
+interp_val_co_dc_calc[:300] = 0
+fig = plt.figure()
+subplot = fig.add_subplot(111)
+subplot.plot(interp_arg, interp_val_co_dc)
+subplot.plot(interp_arg, interp_val_co_dc_calc)
 plt.show()
